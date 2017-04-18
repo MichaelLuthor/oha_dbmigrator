@@ -53,6 +53,7 @@ typedef struct _oha_config_storage {
     oha_string * password;
     oha_string * dbname;
     oha_string * file_path;
+    uint32 port;
 } oha_config_storage;
 
 typedef struct _oha_config {

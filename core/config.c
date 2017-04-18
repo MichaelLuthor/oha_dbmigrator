@@ -229,6 +229,7 @@ oha_config * oha_config_json_file_load ( const char * file_path ) {
             config->source.user = oha_string_create((char *)oha_config_read_json_by_path(file_json, "source.user"));
             config->source.password = oha_string_create((char *)oha_config_read_json_by_path(file_json, "source.password"));
             config->source.dbname = oha_string_create((char *)oha_config_read_json_by_path(file_json, "source.dbname"));
+            config->source.port = 3306;
             break;
         default :
             oha_config_error(config, "Invalid source config.");
@@ -244,6 +245,7 @@ oha_config * oha_config_json_file_load ( const char * file_path ) {
             config->target.user = oha_string_create((char *)oha_config_read_json_by_path(file_json, "target.user"));
             config->target.password = oha_string_create((char *)oha_config_read_json_by_path(file_json, "target.password"));
             config->target.dbname = oha_string_create((char *)oha_config_read_json_by_path(file_json, "target.dbname"));
+            config->target.port = 3306;
             break;
         default :
             oha_config_error(config, "Invalid target config.");
