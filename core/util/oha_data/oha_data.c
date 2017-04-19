@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "oha_data.h"
 
 boolean oha_data_is_big_ending() {
@@ -17,4 +18,13 @@ uint8 oha_data_convert_pointer_to_uint8(pointer pointer) {
         value = ((uint8 *)&pointer)[0];
     }
     return value;
+}
+
+char * oha_data_malloc_and_copy_string( const char * str ) {
+    if ( NULL == str ) {
+        return NULL;
+    }
+    char * new_string = (char *)malloc(strlen(str)+1);
+    strcpy(new_string,str);
+    return new_string;
 }

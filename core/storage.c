@@ -9,7 +9,8 @@ oha_storage * oha_storage_mysql_create(const char * host, const char * user, con
     storage->query_table = oha_storage_handler_mysql_query_table;
     storage->query_table_free = oha_storage_handler_mysql_query_table_destory;
     storage->destory = oha_storage_handler_mysql_destory;
-
+    storage->fetch = oha_storage_handler_mysql_query_table_fetch;
+    storage->fetch_row_destory = oha_storage_handler_mysql_query_table_fetch_destory;
     return storage;
 }
 
@@ -25,10 +26,14 @@ void oha_strage_destory( oha_storage * storage ) {
     storage->destory(storage->instance);
     free(storage);
 }
-//
-//char ** oha_storage_fetch(oha_storage * storage, void * query_result) {
-//    return storage->fetch(storage->instance, query_result);
-//}
+
+void * oha_storage_query_table_fetch(oha_storage * storage, void * result) {
+    return storage->fetch(result);
+}
+
+void oha_storage_query_table_fetch_destory(oha_storage * storage, void * row ) {
+    storage->fetch_row_destory(row);
+}
 
 //
 //void * oha_storage_query(oha_storage * storage, const char * query) {

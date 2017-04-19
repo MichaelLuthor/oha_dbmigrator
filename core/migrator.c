@@ -17,7 +17,7 @@ oha_migrator * oha_migrator_init(oha_config * config) {
     oha_config_storage target = config->target;
     switch ( config->target.type ) {
     case STORAGE_TYPE_MYSQL :
-        migrator->source = oha_storage_mysql_create(target.host->str,target.user->str,target.password->str,target.dbname->str,target.port);
+        migrator->target = oha_storage_mysql_create(target.host->str,target.user->str,target.password->str,target.dbname->str,target.port);
         break;
     }
 
@@ -31,7 +31,9 @@ void oha_migrator_process(oha_migrator * migrator) {
     do {
         process = (oha_config_process *)(oha_link_current(migrator->config->processes)->data);
         void * result = oha_storage_query_table(migrator->source, process->source_name->str, process->condition->str);
+        void * row = oha_storage_query_table_fetch(migrator->source, result);
 
+        oha_storage_query_table_fetch_destory(migrator->source, row);
         oha_storage_query_table_destory(migrator->source, result);
     } while ( oha_link_next(migrator->config->processes) );
 }
