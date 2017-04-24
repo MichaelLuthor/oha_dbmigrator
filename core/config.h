@@ -13,6 +13,12 @@
 #define STORAGE_TYPE_FIREBIRD   6
 #define STORAGE_TYPE_POSTGRESQL 7
 
+#define CONFIG_PROCESS_COLUMN_CONDITION_TYPE_NULL 1 /* no condition, the always true. */
+
+#define CONFIG_PROCESS_COLUMN_HANDLER_TYPE_SOURCE_COLUMN 1
+
+
+
 #define STORAGE_DATA_TYPE_NUMBER    1
 #define STORAGE_DATA_TYPE_oha_string    2
 #define STORAGE_DATA_TYPE_DATETIME  3
@@ -22,8 +28,6 @@
 #define COLUMN_HANDLER_TYPE_CALL 1
 #define COLUMN_HANDLER_TYPE_EXPR 2
 
-#define COLUMN_CONDITION_TYPE_CALL 1
-#define COLUMN_CONDITION_TYPE_EXPR 2
 
 typedef struct _oha_config_process_column_handler {
     uint8 handle_type;

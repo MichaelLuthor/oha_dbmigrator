@@ -4,6 +4,10 @@
 
 int main( int argc, char ** argv ) {
     oha_config * config = oha_config_json_file_load("C:/json.txt");
+    if ( !config->is_available ) {
+        printf("Config Error:%s\n", config->config_message->str);
+        return 0;
+    }
 
     oha_migrator * migrator = oha_migrator_init(config);
     oha_migrator_process(migrator);

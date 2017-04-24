@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../storage.h"
 #include "../../library/mysql/mysql.h"
 #include "../../library/uthash/uthash.h"
@@ -46,7 +47,7 @@ void * oha_storage_handler_mysql_query_table ( void * instance, const char * tab
     return (void *)result;
 }
 
-void * oha_storage_handler_mysql_query_table_fetch ( void * result ) {
+oha_storage_row * oha_storage_handler_mysql_query_table_fetch ( void * result ) {
     oha_storage_handler_mysql_query_result * mysql_result = (oha_storage_handler_mysql_query_result *)result;
     oha_storage_row * row_head = NULL;
     oha_storage_row * row_item = NULL;
@@ -88,22 +89,68 @@ void oha_storage_handler_mysql_query_table_destory ( void * result ) {
     free(mysql_result);
 }
 
+boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oha_storage_row * row) {
+    oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
+
+    char * query_template = "INSERT INTO `%s` (%s) VALUES (%s)";
+    uint32 column_count = HASH_COUNT(row);
+    uint32 column_length = 0;
+    uint32 value_length = 0;
+
+    char ** columns = (char **)malloc(sizeof(char *) * column_count);
+    char ** values = (char **)malloc(sizeof(char *) * column_count);
+
+    oha_storage_row * tmp;
+    uint32 index = 0;
+    uint32 column_value_length = 0;
+    for (tmp=row; tmp!=NULL; tmp=tmp->hh.next) {
+        columns[index] = (char *)malloc(strlen(tmp->name)*2+1);
+        sprintf(columns[index], "`%s`", tmp->name);
+        column_length += strlen(columns[index]);
+
+        column_value_length = strlen(tmp->value);
+        values[index] = (char *)malloc(column_value_length*3+1);
+        char * tmp_value = (char *)malloc(column_value_length*3+1);
+        mysql_real_escape_string(mysql->connection, tmp_value, tmp->value, column_value_length);
+        sprintf(values[index], "\"%s\"", tmp_value);
+        free(tmp_value);
+        value_length += strlen(values[index]);
+        index++;
+    }
+    column_length += ((column_count-1)*3+2);
+    value_length += ((column_count-1)*3+2);
+
+    char * column_string = (char *)malloc(column_length);
+    char * value_string = (char *)malloc(value_length);
+    *column_string = 0;
+    *value_string = 0;
+    for ( uint32 i=0; i<column_count; i++ ) {
+        strcat(column_string, columns[i]);
+        free(columns[i]);
+        if ( i != column_count-1 ) {
+            strcat(column_string, ",");
+        }
+
+        strcat(value_string, values[i]);
+        free(values[i]);
+        if ( i != column_count-1 ) {
+            strcat(value_string, ",");
+        }
+    }
+    free(columns);
+    free(values);
+
+    char * query = (char *)malloc(strlen(query_template) + strlen(column_string) + strlen(value_string) + strlen(table) + 100);
+    sprintf(query, query_template, table, column_string, value_string);
+    free(column_string);
+    free(value_string);
+
+    int query_result = mysql_query(mysql->connection, query);
+    return 0==query_result ? OHA_TRUE : OHA_FALSE;
+}
+
 void oha_storage_handler_mysql_destory(void * instance) {
     oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
     mysql_close(mysql->connection);
     free(instance);
-}
-
-
-
-
-
-
-
-char * oha_storage_handler_get_error_message(void * instance) {
-    return NULL;
-}
-
-boolean oha_storage_handler_mysql_insert(void * instance, const char ** row) {
-    return OHA_TRUE;
 }

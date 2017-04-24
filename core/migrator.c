@@ -24,6 +24,60 @@ oha_migrator * oha_migrator_init(oha_config * config) {
     return migrator;
 }
 
+char * oha_migrator_process_row_handler_item(oha_storage_row * row, uint8 type, char * config) {
+    char * value = NULL;
+    oha_storage_row * item;
+
+    switch ( type ) {
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_SOURCE_COLUMN:
+        HASH_FIND_STR(row, config, item);
+        value = item->value;
+    }
+    return value;
+}
+
+char * oha_migrator_process_row_handler(oha_storage_row * row, char * name, oha_link * handlers) {
+    uint8 handler_type = 0;
+    char * handler_config = NULL;
+
+    oha_link_reset(handlers);
+    do {
+        oha_config_process_column_handler * handler = NULL;
+        handler = (oha_config_process_column_handler *)(oha_link_current(handlers)->data);
+        switch ( handler->condition_type ) {
+        case CONFIG_PROCESS_COLUMN_CONDITION_TYPE_NULL :
+            handler_type = handler->handle_type;
+            handler_config = handler->handle_config->str;
+            break;
+        default : break;
+        }
+
+        if ( 0 != handler_type ) {
+            break;
+        }
+    } while ( oha_link_next(handlers) );
+    return oha_migrator_process_row_handler_item(row, handler_type, handler_config);
+}
+
+oha_storage_row * oha_migrator_process_row(oha_migrator * migrator, oha_config_process * process, oha_storage_row * row) {
+    oha_storage_row * row_head = NULL;
+    oha_storage_row * row_item = NULL;
+
+    oha_link * columns = process->columns;
+    oha_link_reset(columns);
+    do {
+        oha_config_process_colum * column = NULL;
+        column = (oha_config_process_colum *)(oha_link_current(columns)->data);
+
+        row_item = (oha_storage_row *)malloc(sizeof(oha_storage_row));
+        row_item->name = oha_data_malloc_and_copy_string(column->target_column_name->str);
+        row_item->value = oha_migrator_process_row_handler(row, row_item->name, column->handlers);
+        HASH_ADD_STR(row_head, name, row_item);
+    } while ( oha_link_next(columns) );
+
+    return row_head;
+}
+
 void oha_migrator_process(oha_migrator * migrator) {
     oha_link_reset(migrator->config->processes);
     oha_config_process * process = NULL;
@@ -31,7 +85,9 @@ void oha_migrator_process(oha_migrator * migrator) {
     do {
         process = (oha_config_process *)(oha_link_current(migrator->config->processes)->data);
         void * result = oha_storage_query_table(migrator->source, process->source_name->str, process->condition->str);
-        void * row = oha_storage_query_table_fetch(migrator->source, result);
+        oha_storage_row * row = oha_storage_query_table_fetch(migrator->source, result);
+        oha_storage_row * target_row = oha_migrator_process_row(migrator,process, row);
+        oha_storage_insert(migrator->target, process->targe_name->str, target_row);
 
         oha_storage_query_table_fetch_destory(migrator->source, row);
         oha_storage_query_table_destory(migrator->source, result);
