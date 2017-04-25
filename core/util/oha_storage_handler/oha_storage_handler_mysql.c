@@ -47,13 +47,22 @@ void * oha_storage_handler_mysql_query_table ( void * instance, const char * tab
     return (void *)result;
 }
 
+uint64 oha_storage_handler_mysql_query_table_row_count(void * result) {
+    oha_storage_handler_mysql_query_result * mysql_result = (oha_storage_handler_mysql_query_result *)result;
+    return mysql_num_rows(mysql_result->result);
+}
+
 oha_storage_row * oha_storage_handler_mysql_query_table_fetch ( void * result ) {
     oha_storage_handler_mysql_query_result * mysql_result = (oha_storage_handler_mysql_query_result *)result;
     oha_storage_row * row_head = NULL;
     oha_storage_row * row_item = NULL;
 
-    MYSQL_FIELD * fields = mysql_fetch_fields(mysql_result->result);
     MYSQL_ROW data_row = mysql_fetch_row(mysql_result->result);
+    if ( NULL == data_row ) {
+        return NULL;
+    }
+
+    MYSQL_FIELD * fields = mysql_fetch_fields(mysql_result->result);
     unsigned int num_fields = mysql_num_fields(mysql_result->result);
 
     for(unsigned int i = 0; i < num_fields; i++) {
@@ -63,23 +72,6 @@ oha_storage_row * oha_storage_handler_mysql_query_table_fetch ( void * result ) 
         HASH_ADD_STR(row_head, name, row_item);
     }
     return row_head;
-}
-
-void oha_storage_handler_mysql_query_table_fetch_destory ( void * row ) {
-    oha_storage_row * data_row = (oha_storage_row *)row;
-    oha_storage_row * tmp;
-    oha_storage_row * next_tmp;
-
-    for ( tmp=data_row; tmp != NULL;) {
-        HASH_DEL(data_row, tmp);
-        next_tmp = tmp->hh.next;
-        free(tmp->name);
-        if ( NULL != tmp->value) {
-            free(tmp->value);
-        }
-        free(tmp);
-        tmp = next_tmp;
-    }
 }
 
 void oha_storage_handler_mysql_query_table_destory ( void * result ) {
@@ -92,11 +84,7 @@ void oha_storage_handler_mysql_query_table_destory ( void * result ) {
 boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oha_storage_row * row) {
     oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
 
-    char * query_template = "INSERT INTO `%s` (%s) VALUES (%s)";
     uint32 column_count = HASH_COUNT(row);
-    uint32 column_length = 0;
-    uint32 value_length = 0;
-
     char ** columns = (char **)malloc(sizeof(char *) * column_count);
     char ** values = (char **)malloc(sizeof(char *) * column_count);
 
@@ -106,7 +94,6 @@ boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oh
     for (tmp=row; tmp!=NULL; tmp=tmp->hh.next) {
         columns[index] = (char *)malloc(strlen(tmp->name)*2+1);
         sprintf(columns[index], "`%s`", tmp->name);
-        column_length += strlen(columns[index]);
 
         column_value_length = strlen(tmp->value);
         values[index] = (char *)malloc(column_value_length*3+1);
@@ -114,38 +101,22 @@ boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oh
         mysql_real_escape_string(mysql->connection, tmp_value, tmp->value, column_value_length);
         sprintf(values[index], "\"%s\"", tmp_value);
         free(tmp_value);
-        value_length += strlen(values[index]);
         index++;
     }
-    column_length += ((column_count-1)*3+2);
-    value_length += ((column_count-1)*3+2);
 
-    char * column_string = (char *)malloc(column_length);
-    char * value_string = (char *)malloc(value_length);
-    *column_string = 0;
-    *value_string = 0;
-    for ( uint32 i=0; i<column_count; i++ ) {
-        strcat(column_string, columns[i]);
-        free(columns[i]);
-        if ( i != column_count-1 ) {
-            strcat(column_string, ",");
-        }
+    char * column_string = oha_data_string_combine_array(columns, column_count, ",");
+    char * value_string = oha_data_string_combine_array(values, column_count, ",");
+    oha_data_pointer_array_free(&columns,column_count);
+    oha_data_pointer_array_free(&values,column_count);
 
-        strcat(value_string, values[i]);
-        free(values[i]);
-        if ( i != column_count-1 ) {
-            strcat(value_string, ",");
-        }
-    }
-    free(columns);
-    free(values);
-
+    char * query_template = "INSERT INTO `%s` (%s) VALUES (%s)";
     char * query = (char *)malloc(strlen(query_template) + strlen(column_string) + strlen(value_string) + strlen(table) + 100);
     sprintf(query, query_template, table, column_string, value_string);
     free(column_string);
     free(value_string);
 
     int query_result = mysql_query(mysql->connection, query);
+    free(query);
     return 0==query_result ? OHA_TRUE : OHA_FALSE;
 }
 

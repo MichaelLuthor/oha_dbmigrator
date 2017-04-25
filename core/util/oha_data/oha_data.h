@@ -18,6 +18,8 @@ typedef unsigned long long uint64;
 typedef void * pointer;
 #endif
 
-uint8   oha_data_convert_pointer_to_uint8(pointer pointer);
-char *  oha_data_malloc_and_copy_string( const char * str );
+uint8   oha_data_convert_pointer_to_uint8   (pointer pointer);
+char *  oha_data_malloc_and_copy_string     (const char * str );
+char *  oha_data_string_combine_array       (const char ** str_array, const uint32 count, const char * pieces);
+void    oha_data_pointer_array_free         (void *** array, uint32 count );
 #endif

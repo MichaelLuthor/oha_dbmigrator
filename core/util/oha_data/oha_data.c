@@ -28,3 +28,30 @@ char * oha_data_malloc_and_copy_string( const char * str ) {
     strcpy(new_string,str);
     return new_string;
 }
+
+char * oha_data_string_combine_array( const char ** str_array, const uint32 count, const char * pieces) {
+    uint64 target_length = 0;
+    for( uint32 i=0; i<count; i++ ) {
+        target_length += strlen(str_array[i]);
+    }
+    if ( NULL != pieces ) {
+        target_length += (count-1)*strlen(pieces);
+    }
+
+    char * target_str = (char *)malloc(target_length+1);
+    target_str[0] = 0;
+    for( uint32 i=0; i<count; i++ ) {
+        strcat(target_str, str_array[i]);
+        if ( NULL!=pieces && i != count-1 ) {
+            strcat(target_str, pieces);
+        }
+    }
+    return target_str;
+}
+
+void oha_data_pointer_array_free( void *** array, uint32 count ) {
+    for ( uint32 i=0; i<count; i++ ) {
+        free((*array)[i]);
+    }
+    free(*array);
+}

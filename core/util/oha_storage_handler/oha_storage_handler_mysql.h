@@ -14,6 +14,7 @@ typedef struct _oha_storage_handler_mysql_query_result {
 
 oha_storage_handler_mysql * oha_storage_handler_mysql_create                    (const char * host, const char * user, const char * password, const char * dbname, uint32 port);
 void *                      oha_storage_handler_mysql_query_table               (void * instance, const char * table, const char * condition);
+uint64                      oha_storage_handler_mysql_query_table_row_count     (void * result);
 oha_storage_row *           oha_storage_handler_mysql_query_table_fetch         (void * result );
 void                        oha_storage_handler_mysql_query_table_fetch_destory ( void * row );
 void                        oha_storage_handler_mysql_query_table_destory       (void * result );

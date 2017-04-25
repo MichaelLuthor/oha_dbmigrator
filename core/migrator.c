@@ -85,11 +85,24 @@ void oha_migrator_process(oha_migrator * migrator) {
     do {
         process = (oha_config_process *)(oha_link_current(migrator->config->processes)->data);
         void * result = oha_storage_query_table(migrator->source, process->source_name->str, process->condition->str);
-        oha_storage_row * row = oha_storage_query_table_fetch(migrator->source, result);
-        oha_storage_row * target_row = oha_migrator_process_row(migrator,process, row);
-        oha_storage_insert(migrator->target, process->targe_name->str, target_row);
 
-        oha_storage_query_table_fetch_destory(migrator->source, row);
+        migrator->current_process = process;
+        migrator->on_process_start(migrator, oha_storage_query_table_row_count(migrator->source, result));
+        do {
+            oha_storage_row * row = oha_storage_query_table_fetch(migrator->source, result);
+            if ( NULL == row ) {
+                break;
+            }
+            oha_storage_row * target_row = oha_migrator_process_row(migrator,process, row);
+            oha_storage_insert(migrator->target, process->targe_name->str, target_row);
+
+            migrator->on_process_row_insert(migrator);
+
+            oha_storage_free_row(row);
+            oha_storage_free_row(target_row);
+        } while(1);
+        migrator->on_process_end(migrator);
+
         oha_storage_query_table_destory(migrator->source, result);
     } while ( oha_link_next(migrator->config->processes) );
 }
