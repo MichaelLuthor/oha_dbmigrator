@@ -95,12 +95,18 @@ boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oh
         columns[index] = (char *)malloc(strlen(tmp->name)*2+1);
         sprintf(columns[index], "`%s`", tmp->name);
 
-        column_value_length = strlen(tmp->value);
-        values[index] = (char *)malloc(column_value_length*3+1);
-        char * tmp_value = (char *)malloc(column_value_length*3+1);
-        mysql_real_escape_string(mysql->connection, tmp_value, tmp->value, column_value_length);
-        sprintf(values[index], "\"%s\"", tmp_value);
-        free(tmp_value);
+        if ( NULL == tmp->value ) {
+            values[index] = (char *)malloc(5);
+            sprintf(values[index], "NULL");
+        } else {
+            column_value_length = strlen(tmp->value);
+            values[index] = (char *)malloc(column_value_length*3+1);
+            char * tmp_value = (char *)malloc(column_value_length*3+1);
+            mysql_real_escape_string(mysql->connection, tmp_value, tmp->value, column_value_length);
+            sprintf(values[index], "\"%s\"", tmp_value);
+            free(tmp_value);
+        }
+
         index++;
     }
 

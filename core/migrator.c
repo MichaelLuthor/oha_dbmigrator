@@ -36,6 +36,9 @@ char * oha_migrator_process_row_handler_item(oha_storage_row * row, uint8 type, 
     case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_VALUE :
         value = config;
         break;
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_NULL :
+        value = NULL;
+        break;
     }
     return value;
 }
