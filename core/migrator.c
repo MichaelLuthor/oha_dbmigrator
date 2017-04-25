@@ -29,9 +29,13 @@ char * oha_migrator_process_row_handler_item(oha_storage_row * row, uint8 type, 
     oha_storage_row * item;
 
     switch ( type ) {
-    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_SOURCE_COLUMN:
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_SOURCE_COLUMN :
         HASH_FIND_STR(row, config, item);
         value = item->value;
+        break;
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_VALUE :
+        value = config;
+        break;
     }
     return value;
 }
@@ -71,7 +75,7 @@ oha_storage_row * oha_migrator_process_row(oha_migrator * migrator, oha_config_p
 
         row_item = (oha_storage_row *)malloc(sizeof(oha_storage_row));
         row_item->name = oha_data_malloc_and_copy_string(column->target_column_name->str);
-        row_item->value = oha_migrator_process_row_handler(row, row_item->name, column->handlers);
+        row_item->value = oha_data_malloc_and_copy_string(oha_migrator_process_row_handler(row, row_item->name, column->handlers));
         HASH_ADD_STR(row_head, name, row_item);
     } while ( oha_link_next(columns) );
 
