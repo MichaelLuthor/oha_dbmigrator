@@ -12,6 +12,8 @@ oha_storage * oha_storage_mysql_create(const char * host, const char * user, con
     storage->fetch = oha_storage_handler_mysql_query_table_fetch;
     storage->insert = oha_storage_handler_mysql_insert;
     storage->count = oha_storage_handler_mysql_query_table_row_count;
+    storage->query_get_one = oha_storage_handler_mysql_query_and_get_one_value;
+    storage->quote_value = oha_storage_handler_mysql_quote_value;
     return storage;
 }
 
@@ -38,6 +40,14 @@ oha_storage_row * oha_storage_query_table_fetch(oha_storage * storage, void * re
 
 boolean oha_storage_insert(oha_storage * storage, const char * table, oha_storage_row * row) {
     return storage->insert(storage->instance, table, row);
+}
+
+char * oha_storage_query_get_one(oha_storage * storage, const char * query) {
+    return storage->query_get_one(storage->instance, query);
+}
+
+char * oha_storage_quote_value(oha_storage * storage, const char * value) {
+    return storage->quote_value(storage->instance, value);
 }
 
 void oha_storage_free_row ( oha_storage_row * data_row ) {

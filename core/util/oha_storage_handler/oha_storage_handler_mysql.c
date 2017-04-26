@@ -126,6 +126,37 @@ boolean oha_storage_handler_mysql_insert(void * instance, const char * table, oh
     return 0==query_result ? OHA_TRUE : OHA_FALSE;
 }
 
+char * oha_storage_handler_mysql_quote_value( void * instance, const char * value ){
+    oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
+    int value_length = strlen(value);
+    char * tmp_value = (char *)malloc(value_length*3+1);
+    mysql_real_escape_string(mysql->connection, tmp_value, value, value_length);
+
+    char * dest_value = (char *)malloc(strlen(tmp_value)+2+1);
+    sprintf(dest_value, "\"%s\"", tmp_value);
+    free(tmp_value);
+    return dest_value;
+}
+
+char * oha_storage_handler_mysql_query_and_get_one_value(void * instance, const char * query) {
+    oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
+    int query_result = mysql_query(mysql->connection, query);
+    if ( 0 != query_result ) {
+        return NULL;
+    }
+
+    MYSQL_RES * result = mysql_store_result(mysql->connection);
+    MYSQL_ROW data_row = mysql_fetch_row(result);
+    if ( NULL == data_row ) {
+        return NULL;
+    }
+
+    char * value = (char *)malloc(strlen(data_row[0])+1);
+    strcpy(value, data_row[0]);
+    mysql_free_result(result);
+    return value;
+}
+
 void oha_storage_handler_mysql_destory(void * instance) {
     oha_storage_handler_mysql * mysql = (oha_storage_handler_mysql *)instance;
     mysql_close(mysql->connection);

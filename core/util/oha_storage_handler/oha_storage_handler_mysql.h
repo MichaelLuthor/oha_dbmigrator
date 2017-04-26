@@ -16,8 +16,10 @@ oha_storage_handler_mysql * oha_storage_handler_mysql_create                    
 void *                      oha_storage_handler_mysql_query_table               (void * instance, const char * table, const char * condition);
 uint64                      oha_storage_handler_mysql_query_table_row_count     (void * result);
 oha_storage_row *           oha_storage_handler_mysql_query_table_fetch         (void * result );
-void                        oha_storage_handler_mysql_query_table_fetch_destory ( void * row );
+void                        oha_storage_handler_mysql_query_table_fetch_destory (void * row );
 void                        oha_storage_handler_mysql_query_table_destory       (void * result );
 boolean                     oha_storage_handler_mysql_insert                    (void * instance, const char * table, oha_storage_row * row);
 void                        oha_storage_handler_mysql_destory                   (void * instance);
+char *                      oha_storage_handler_mysql_query_and_get_one_value   (void * instance, const char * query);
+char *                      oha_storage_handler_mysql_quote_value               (void * instance, const char * value );
 #endif

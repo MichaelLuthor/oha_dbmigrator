@@ -21,5 +21,7 @@ typedef void * pointer;
 uint8   oha_data_convert_pointer_to_uint8   (pointer pointer);
 char *  oha_data_malloc_and_copy_string     (const char * str );
 char *  oha_data_string_combine_array       (const char ** str_array, const uint32 count, const char * pieces);
+char *  oha_data_string_replace             (const char * source, const char * replace, const char * replace_to );
+char *  oha_data_string_sub                 (const char * string, int start, int length);
 void    oha_data_pointer_array_free         (void *** array, uint32 count );
 #endif

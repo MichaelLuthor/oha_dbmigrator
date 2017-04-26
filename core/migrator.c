@@ -1,7 +1,9 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "config.h"
 #include "storage.h"
 #include "migrator.h"
+#include "library/pcre/pcre.h"
 
 oha_migrator * oha_migrator_init(oha_config * config) {
     oha_migrator * migrator = (oha_migrator *)malloc(sizeof(oha_migrator));
@@ -24,26 +26,86 @@ oha_migrator * oha_migrator_init(oha_config * config) {
     return migrator;
 }
 
-char * oha_migrator_process_row_handler_item(oha_storage_row * row, uint8 type, char * config) {
+char * oha_migrator_process_replace_param_placeholder(oha_migrator * migrator, const char * expression, oha_storage_row * row) {
+    const char *error;
+    int  erroffset;
+    pcre * regex = pcre_compile("(\\{(.*?)\\})",0,&error,&erroffset,NULL);
+    if (regex == NULL) {
+        return NULL;
+    }
+
+    char * dest_expression = expression;
+    char * tmp_dest_expression = NULL;
+
+    int  match_count = 0;
+    unsigned int match_offset = 0;
+    oha_storage_row * place_holder_value_item;
+    unsigned int expression_len = strlen(expression);
+    int *ovector = (int *)malloc(sizeof(int)*MIGRATOR_EXPRESION_PARAM_MAX_COUNT);
+
+    memset(ovector, 0, sizeof(int)*MIGRATOR_EXPRESION_PARAM_MAX_COUNT);
+    do {
+        if ( match_offset >= expression_len ) {
+            break;
+        }
+        match_count = pcre_exec(regex,NULL,expression,expression_len,match_offset,0,ovector,MIGRATOR_EXPRESION_PARAM_MAX_COUNT);
+        if ( match_count < 0 ) {
+            break;
+        }
+
+        char * place_holder = oha_data_string_sub(expression, ovector[2], ovector[3]-ovector[2]);
+        char * param = oha_data_string_sub(expression, ovector[4], ovector[5]-ovector[4]);
+
+        HASH_FIND_STR(row, param, place_holder_value_item);
+        char * place_holder_value = oha_data_malloc_and_copy_string(place_holder_value_item->value);
+        char * quoted_place_holder_value = oha_storage_quote_value(migrator->source, place_holder_value);
+
+        tmp_dest_expression = oha_data_string_replace(dest_expression, place_holder, quoted_place_holder_value);
+        if ( dest_expression != expression ) {
+            free(dest_expression);
+        }
+        dest_expression = tmp_dest_expression;
+
+        free(quoted_place_holder_value);
+        free(place_holder_value);
+        free(place_holder);
+        free(param);
+        match_offset = ovector[1];
+    } while ( 1 );
+
+    pcre_free(regex);
+    free(ovector);
+    return dest_expression;
+}
+
+char * oha_migrator_process_row_handler_item(oha_migrator * migrator, oha_storage_row * row, uint8 type, char * config) {
     char * value = NULL;
     oha_storage_row * item;
 
+    char * query = NULL;
     switch ( type ) {
     case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_SOURCE_COLUMN :
         HASH_FIND_STR(row, config, item);
-        value = item->value;
+        value = oha_data_malloc_and_copy_string(item->value);
         break;
     case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_VALUE :
-        value = config;
+        value = oha_data_malloc_and_copy_string(config);
         break;
     case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_NULL :
         value = NULL;
+        break;
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_QUERY :
+        query = oha_migrator_process_replace_param_placeholder(migrator, config, row);
+        if ( NULL != query ) {
+            value = oha_storage_query_get_one(migrator->source, query);
+        }
+        free(query);
         break;
     }
     return value;
 }
 
-char * oha_migrator_process_row_handler(oha_storage_row * row, char * name, oha_link * handlers) {
+char * oha_migrator_process_row_handler(oha_migrator * migrator, oha_storage_row * row, char * name, oha_link * handlers) {
     uint8 handler_type = 0;
     char * handler_config = NULL;
 
@@ -63,7 +125,7 @@ char * oha_migrator_process_row_handler(oha_storage_row * row, char * name, oha_
             break;
         }
     } while ( oha_link_next(handlers) );
-    return oha_migrator_process_row_handler_item(row, handler_type, handler_config);
+    return oha_migrator_process_row_handler_item(migrator, row, handler_type, handler_config);
 }
 
 oha_storage_row * oha_migrator_process_row(oha_migrator * migrator, oha_config_process * process, oha_storage_row * row) {
@@ -78,7 +140,11 @@ oha_storage_row * oha_migrator_process_row(oha_migrator * migrator, oha_config_p
 
         row_item = (oha_storage_row *)malloc(sizeof(oha_storage_row));
         row_item->name = oha_data_malloc_and_copy_string(column->target_column_name->str);
-        row_item->value = oha_data_malloc_and_copy_string(oha_migrator_process_row_handler(row, row_item->name, column->handlers));
+        char * value = oha_migrator_process_row_handler(migrator, row, row_item->name, column->handlers);
+        row_item->value = oha_data_malloc_and_copy_string(value);
+        if ( NULL != value ) {
+            free(value);
+        }
         HASH_ADD_STR(row_head, name, row_item);
     } while ( oha_link_next(columns) );
 

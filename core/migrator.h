@@ -4,6 +4,8 @@
 #include "config.h"
 #include "storage.h"
 
+#define MIGRATOR_EXPRESION_PARAM_MAX_COUNT 90
+
 typedef struct _oha_migrator {
     oha_config * config;
     oha_storage * source;
