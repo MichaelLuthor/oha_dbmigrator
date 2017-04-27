@@ -9,6 +9,13 @@ oha_migrator * oha_migrator_init(oha_config * config) {
     oha_migrator * migrator = (oha_migrator *)malloc(sizeof(oha_migrator));
     migrator->config = config;
 
+    char * php_script_template = "<?php \n%s\necho eval(\"return {$argv[1]};\");";
+    if ( 0 < migrator->config->php_script->len ) {
+        char * php_script = (char *)malloc(strlen(php_script_template) + migrator->config->php_script->len +1);
+        sprintf(php_script, php_script_template, migrator->config->php_script->str);
+        oha_data_file_put_contents(MIGRATOR_DEFAULT_PHP_SCRIPT_PATH, php_script);
+    }
+
     oha_config_storage source = config->source;
     switch ( config->source.type ) {
     case STORAGE_TYPE_MYSQL :
@@ -73,6 +80,10 @@ char * oha_migrator_process_replace_param_placeholder(oha_migrator * migrator, c
         match_offset = ovector[1];
     } while ( 1 );
 
+    if ( dest_expression == expression ) {
+        dest_expression = oha_data_malloc_and_copy_string(expression);
+    }
+
     pcre_free(regex);
     free(ovector);
     return dest_expression;
@@ -100,6 +111,32 @@ char * oha_migrator_process_row_handler_item(oha_migrator * migrator, oha_storag
             value = oha_storage_query_get_one(migrator->source, query);
         }
         free(query);
+        break;
+    case CONFIG_PROCESS_COLUMN_HANDLER_TYPE_PHP_CALL : {
+            char * command_arg = oha_migrator_process_replace_param_placeholder(migrator, config, row);
+            if ( NULL == command_arg ) {
+                break;
+            }
+
+            char * php_script_command_template = "php %s \"%s\"";
+            uint32 php_script_command_length = 0;
+            char * php_script_command = NULL;
+            char * quoted_args = oha_data_string_escape_shell_command(command_arg);
+
+
+
+            php_script_command_length = strlen(php_script_command_template)
+               + strlen(MIGRATOR_DEFAULT_PHP_SCRIPT_PATH)
+               + strlen(quoted_args);
+            php_script_command = (char *)malloc(php_script_command_length+1);
+            sprintf(php_script_command, php_script_command_template, MIGRATOR_DEFAULT_PHP_SCRIPT_PATH, quoted_args);
+
+            value = oha_data_string_exec_get_result(php_script_command);
+
+            free(command_arg);
+            free(quoted_args);
+            free(php_script_command);
+        }
         break;
     }
     return value;
@@ -181,6 +218,10 @@ void oha_migrator_process(oha_migrator * migrator) {
 }
 
 void oha_migrator_destory(oha_migrator * migrator) {
+    if ( 0 < migrator->config->php_script->len ) {
+        remove(MIGRATOR_DEFAULT_PHP_SCRIPT_PATH);
+    }
+
     oha_strage_destory(migrator->source);
     oha_strage_destory(migrator->target);
     free(migrator);

@@ -23,5 +23,8 @@ char *  oha_data_malloc_and_copy_string     (const char * str );
 char *  oha_data_string_combine_array       (const char ** str_array, const uint32 count, const char * pieces);
 char *  oha_data_string_replace             (const char * source, const char * replace, const char * replace_to );
 char *  oha_data_string_sub                 (const char * string, int start, int length);
+char *  oha_data_string_escape_shell_command(const char * command );
+char *  oha_data_string_exec_get_result     (const char * command );
 void    oha_data_pointer_array_free         (void *** array, uint32 count );
+boolean oha_data_file_put_contents          (const char * file_path, const char * content);
 #endif

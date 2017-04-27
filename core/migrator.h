@@ -6,6 +6,8 @@
 
 #define MIGRATOR_EXPRESION_PARAM_MAX_COUNT 90
 
+#define MIGRATOR_DEFAULT_PHP_SCRIPT_PATH "php_script.php"
+
 typedef struct _oha_migrator {
     oha_config * config;
     oha_storage * source;

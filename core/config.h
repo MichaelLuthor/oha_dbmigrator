@@ -19,6 +19,7 @@
 #define CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_VALUE 2
 #define CONFIG_PROCESS_COLUMN_HANDLER_TYPE_FIXED_NULL 3
 #define CONFIG_PROCESS_COLUMN_HANDLER_TYPE_QUERY 4
+#define CONFIG_PROCESS_COLUMN_HANDLER_TYPE_PHP_CALL 5
 
 #define STORAGE_DATA_TYPE_NUMBER    1
 #define STORAGE_DATA_TYPE_oha_string    2
@@ -66,6 +67,7 @@ typedef struct _oha_config {
     oha_string * config_message;
     oha_config_storage source;
     oha_config_storage target;
+    oha_string * php_script;
     oha_link * processes;
 } oha_config;
 

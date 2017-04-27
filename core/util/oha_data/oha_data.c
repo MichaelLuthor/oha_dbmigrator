@@ -1,6 +1,8 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "oha_data.h"
+#include "../oha_link/oha_link.h"
 
 boolean oha_data_is_big_ending() {
     union {
@@ -52,7 +54,9 @@ char * oha_data_string_combine_array( const char ** str_array, const uint32 coun
 
 void oha_data_pointer_array_free( void *** array, uint32 count ) {
     for ( uint32 i=0; i<count; i++ ) {
-        free((*array)[i]);
+        if ( NULL != (*array)[i] ) {
+            free((*array)[i]);
+        }
     }
     free(*array);
 }
@@ -91,4 +95,58 @@ char * oha_data_string_sub( const char * string, int start, int length) {
     strncpy(dest_string, string+start, length);
     *(dest_string+length) = '\0';
     return dest_string;
+}
+
+boolean oha_data_file_put_contents(const char * file_path, const char * content ) {
+    FILE * file = fopen(file_path, "w");
+    if(file==NULL) {
+        return OHA_FALSE;
+    }
+    int count = fwrite(content, strlen(content), 1, file);
+    if ( 0 == count ) {
+        return OHA_FALSE;
+    }
+    fclose(file);
+    return OHA_TRUE;
+}
+
+char * oha_data_string_escape_shell_command( const char * command ) {
+    char * new_command = oha_data_string_replace(command, "\"", "\\\"");
+    return new_command;
+}
+
+char * oha_data_string_exec_get_result( const char * command ) {
+    FILE * commander = popen(command, "r");
+    if (commander == NULL) {
+        return NULL;
+    }
+
+    oha_link * pieces = oha_link_create();
+    uint32 buffer_length = 1024;
+
+    uint32 content_length = 0;
+    do {
+        char * buffer = (char *)malloc(buffer_length);
+        uint32 read_size = read_size=fread(buffer, 1, buffer_length, commander);
+        if ( 0 >= read_size ) {
+            break;
+        }
+        oha_link_append(pieces, buffer);
+        content_length += read_size;
+    } while (1);
+
+    uint32 piece_count = oha_link_get_length(pieces);
+    char * contents = (char *)malloc(piece_count*buffer_length);
+    char * content_writer = contents;
+    oha_link_reset(pieces);
+    do {
+        char * piece = (char *)oha_link_current(pieces)->data;
+        memcpy(content_writer, piece, buffer_length);
+        content_writer += buffer_length;
+        free(piece);
+    }while(oha_link_next(pieces));
+    oha_link_desctory(pieces);
+    contents[content_length] = '\0';
+
+    return contents;
 }

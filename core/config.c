@@ -253,6 +253,7 @@ oha_config * oha_config_json_file_load ( const char * file_path ) {
         }
     }
 
+    config->php_script = oha_string_create((char *)oha_config_read_json_by_path(file_json, "php_script"));
     if ( config->is_available ) {
         config->processes = oha_config_json_file_load_process_config(config, file_json);
     }
