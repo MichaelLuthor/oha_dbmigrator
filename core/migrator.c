@@ -4,6 +4,8 @@
 #include "storage.h"
 #include "migrator.h"
 #include "library/pcre/pcre.h"
+#include "library/lua/lua.h"
+#include "library/lua/lauxlib.h"
 
 oha_migrator * oha_migrator_init(oha_config * config) {
     oha_migrator * migrator = (oha_migrator *)malloc(sizeof(oha_migrator));
@@ -154,6 +156,27 @@ char * oha_migrator_process_row_handler(oha_migrator * migrator, oha_storage_row
         case CONFIG_PROCESS_COLUMN_CONDITION_TYPE_NULL :
             handler_type = handler->handle_type;
             handler_config = handler->handle_config->str;
+            break;
+        case CONFIG_PROCESS_COLUMN_CONDITION_TYPE_LUA_EXPR : {
+            char * query = oha_migrator_process_replace_param_placeholder(migrator, handler->condition_config->str, row);
+            if ( NULL == query ) {
+                break;
+            }
+
+            char * lua_expr = (char *)malloc(strlen(query) + 10);
+            sprintf(lua_expr, "return %s", query);
+            free(query);
+
+            lua_State * L = luaL_newstate();
+            luaL_dostring(L, lua_expr);
+            int is_lua_expr_true = lua_toboolean(L, -1);
+            lua_close(L);
+            if ( is_lua_expr_true ){
+                handler_type = handler->handle_type;
+                handler_config = handler->handle_config->str;
+            }
+            free(lua_expr);
+            }
             break;
         default : break;
         }
