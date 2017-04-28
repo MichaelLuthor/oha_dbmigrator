@@ -13,7 +13,7 @@ A simple database migrator wirten by C.
 
 ### Supported condition handler
 * Default condition handle default value.
-* Lua expression condition. (e.g. {name}="user-name")
+* Lua expression condition. (e.g. {name}=="user-name")
 
 ### Note
 * when set column value handler to php function, you have to make sure that the `php` command is executable. 
